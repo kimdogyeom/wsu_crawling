@@ -1,62 +1,48 @@
 package dogyeom.wsu_crawling.Util;
 
+import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Getter;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.util.ObjectUtils;
 
+@Getter
 @Component
 public class WebDriverUtil {
 
-	private static String WEB_DRIVER_PATH;
+	@Value("${driver.chrome.driver_path}")
+	private String webDriverPath;
 
 	@Value("${download.path}")
-	public static String DOWNLOAD_PATH;
+	private String downloadPath;
 
+	@PostConstruct
+	public void setupDriverPath() {
+		System.setProperty("webdriver.chrome.driver", webDriverPath);
+	}
 
-	public static WebDriver getChromeDriver() {
-		if (ObjectUtils.isEmpty(System.getProperty("webdriver.chrome.driver"))) {
-			System.setProperty("webdriver.chrome.driver", WEB_DRIVER_PATH);
-		}
-
-		// webDriver 옵션 설정
-		ChromeOptions chromeOptions = new ChromeOptions();
-		chromeOptions.addArguments("--headless");
-		chromeOptions.addArguments("--lang=ko");
-		chromeOptions.addArguments("--no-sandbox");
-		chromeOptions.addArguments("--disable-dev-shm-usage");
-		chromeOptions.addArguments("--disable-gpu");
+	public WebDriver createWebDriver() {
+		ChromeOptions options = new ChromeOptions();
+		options.addArguments("--headless", "--lang=ko", "--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu");
 
 		Map<String, Object> prefs = new HashMap<>();
-		prefs.put("download.default_directory", DOWNLOAD_PATH); // 다운로드 폴더 설정
-		prefs.put("plugins.always_open_pdf_externally", true); // PDF를 새 탭에서 열지 않고 다운로드
-		chromeOptions.setExperimentalOption("prefs", prefs);
+		prefs.put("download.default_directory", downloadPath); // 다운로드 폴더 설정
+		options.setExperimentalOption("prefs", prefs);
 
-		WebDriver driver = new ChromeDriver(chromeOptions);
+		WebDriver driver = new ChromeDriver(options);
 		driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
 
 		return driver;
 	}
 
-	@Value(value = "#{resource['driver.chrome.driver_path']}")
-	public void initDriver(String path) {
-		WEB_DRIVER_PATH = path;
-	}
-
-	public static void quit(WebDriver driver) {
-		if (!ObjectUtils.isEmpty(driver)) {
+	public void quit(WebDriver driver) {
+		if (driver != null) {
 			driver.quit();
-		}
-	}
-
-	public static void close(WebDriver driver) {
-		if (!ObjectUtils.isEmpty(driver)) {
-			driver.close();
 		}
 	}
 }
